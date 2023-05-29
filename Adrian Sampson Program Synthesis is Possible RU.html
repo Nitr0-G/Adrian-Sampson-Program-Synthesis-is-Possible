@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+        <title>
+            Adrian Sampson: Program Synthesis is Possible
+        </title>
+
+        <link rel="stylesheet" href="Adrian%20Sampson%20Program%20Synthesis%20is%20Possible_files/main.css">
+        <link rel="alternate" type="application/json" href="https://www.cs.cornell.edu/~asampson/feed.json" title="JSON Feed">
+        <link rel="alternate" type="application/rss+xml" href="https://www.cs.cornell.edu/~asampson/blog.xml" title="Atom">
+        <link rel="me" href="https://discuss.systems/@adrian">
+        <link rel="me" href="https://mastodon.social/@samps">
+
+        <link rel="icon" href="https://www.cs.cornell.edu/~asampson/media/icon/favicon.ico">
+        <link rel="apple-touch-icon-precomposed" href="https://www.cs.cornell.edu/~asampson/media/icon/favicon152.png">
+
+        
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:site" content="@samps">
+        <meta name="twitter:creator" content="@samps">
+        <meta name="twitter:title" content="Program Synthesis is Possible">
+        <meta name="twitter:image" content="https://www.cs.cornell.edu/~asampson/media/icon/favicon512.png">
+        <meta name="twitter:description" content="Inspired by Aws Albarghouthi’s primer, I’ll give a little lecture on program synthesis for the last day of this year’s CS 6110. Here’s a code-driven introduction whose goal is to convince you that you too can synthesize programs.">
+
+        <meta property="og:type" content="article">
+        <meta property="og:title" content="Program Synthesis is Possible">
+        <meta property="og:description" content="Inspired by Aws Albarghouthi’s primer, I’ll give a little lecture on program synthesis for the last day of this year’s CS 6110. Here’s a code-driven introduction whose goal is to convince you that you too can synthesize programs.">
+        
+
+        
+
+        
+        <!-- KaTeX -->
+        <link rel="stylesheet" href="Adrian%20Sampson%20Program%20Synthesis%20is%20Possible_files/katex.min.css">
+        
+    </head>
+    <body>
+        <div class="container">
+
+            
+            <header>
+                <div id="leader">
+                    <h1>
+                        <a href="https://www.cs.cornell.edu/~asampson/">Adrian Sampson</a>
+                    </h1>
+                    <address>
+                        <a href="http://www.cs.cornell.edu/">Department of
+                            Computer Science</a><br>
+                        <a href="http://www.cornell.edu/">Cornell University</a>
+                    </address>
+                </div>
+                <nav>
+                    
+                    
+                    <a href="https://www.cs.cornell.edu/~asampson/">
+                        home
+                    </a>
+                    
+                    <a href="https://www.cs.cornell.edu/~asampson/research.html">
+                        research
+                    </a>
+                    
+                    <a href="https://www.cs.cornell.edu/~asampson/teaching.html">
+                        teaching
+                    </a>
+                    
+                    <a class="active" href="https://www.cs.cornell.edu/~asampson/blog/">
+                        blog
+                    </a>
+                    
+                    <a href="https://www.cs.cornell.edu/~asampson/contact.html">
+                        contact
+                    </a>
+                    
+                </nav>
+            </header>
+            
+
+            <h2 class="with-tagline">Program Synthesis is Possible</h2>
+
+<p class="tagline">May 9, 2018</p>
+<p class="tagline"><a href="https://github.com/Nitr0-G" style="color: gray; text-decoration:none">Перевел: Nitr0-G</a><br></p>
+
+<article class="full">
+<p><a href="https://homes.cs.washington.edu/~bornholt/post/synthesis-explained.html">Program synthesis</a> - это не только модное название сессии на конференциях по языкам программирования. Это также широко применимый метод, который могут использовать люди из многих сфер компьютерной науки. Но это может показаться волшебством: автоматическая генерация программ на основе спецификаций звучит так, будто для этого может потребоваться степень доктора философии в области формальных методов.<a href="https://www.cs.wisc.edu/">Wisconsin</a>’s <a href="http://www.cs.wisc.edu/~aws">Aws Albarghouthi</a> wrote a wonderful <a href="http://barghouthi.github.io/2017/04/24/synthesis-primer/">primer on synthesis</a> last year, который помогает прояснить основные методы с помощью примеров кода. Здесь мы расширим возможности Aws primer и создадим крошечный, но полноценный механизм синтеза с нуля.</p>
+
+<p>Вы можете следовать <a href="https://github.com/sampsyo/minisynth">моему коду на Python</a>  или начать отсюда буфера.</p>
+
+<h2 id="z3-is-amazing">Z3 is Amazing</h2>
+
+<p>Мы не будем <em>начинать</em> с нуля—мы начнем с  <a href="https://github.com/Z3Prover/z3">Z3</a> и его API для Python'а.
+Z3 - <a href="https://en.wikipedia.org/wiki/Satisfiability_modulo_theories">satisfiability modulo theories (SMT) solver</a>, который похож на SAT solver с<em>теориями</em> , в свою очередь, подобные солверы позволяют вам выражать ограничения, включающие целые числа, битовые векторы, числа с плавающей запятой и все, что у вас есть.
+Мы будем использовать Z3 API для Python.
+На Mac вы можете установить все из <a href="https://brew.sh/">Homebrew</a>:</p>
+
+<div class="language-sh highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="nv">$ </span>brew <span class="nb">install </span>z3
+</code></pre></div></div>
+
+<p><a href="https://github.com/sampsyo/minisynth/blob/master/ex0.py">Давайте попробуем это</a>:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">z3</span>
+</code></pre></div></div>
+
+<p>Чтобы использовать Z3, мы напишем логическую формулу для некоторых переменных, а затем решим их, чтобы получить <em>модель</em>, которая представляет собой оценку переменных, а она делает формулу истинной. Вот, например, одна формула:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>formula = (z3.Int('x') / 7 == 6)
+</code></pre></div></div>
+
+<p><code class="language-plaintext highlighter-rouge">z3.Int</code> объявляет переменную для самого Z3.
+Запуск этой строки Python на самом деле не выполняет никакой проверки на деление или равенство; вместо этого библиотека Z3 перегружает <code class="language-plaintext highlighter-rouge">/</code> и <code class="language-plaintext highlighter-rouge">==</code> в представление своих собственных переменных, дабы получить логическое утверждение.
+Итак, <code class="language-plaintext highlighter-rouge">формула</code> здесь является логическим утверждением об одной свободной int'овой переменной, <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span></span>, которая гласит, что <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>÷</mo><mn>7</mn><mo>=</mo><mn>6</mn></mrow><annotation encoding="application/x-tex">x \div 7 = 6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.6667em; vertical-align: -0.0833em;"></span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right: 0.2222em;"></span><span class="mbin">÷</span><span class="mspace" style="margin-right: 0.2222em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">7</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">6</span></span></span></span></span>.</p>
+
+<p>Давайте докажем <code class="language-plaintext highlighter-rouge">формулу</code>. Мы будем использовать небольшую функцию под названием <code class="language-plaintext highlighter-rouge">solve</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>def solve(phi):
+    s = z3.Solver()
+    s.add(phi)
+    s.check()
+    return s.model()
+</code></pre></div></div>
+
+<p>Интерфейс решателя Z3 намного мощнее, чем то, что мы делаем здесь, но это все, что нам понадобится, чтобы получить модель для одной задачи:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>print(solve(formula))
+</code></pre></div></div>
+
+<p>У себя я получаю следующее:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>[x = 43]
+</code></pre></div></div>
+
+<p>что, по общему признанию, немного разочаровывает, но, по крайней мере, это правда: использование целочисленного деления, <span><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>43</mn><mo>÷</mo><mn>7</mn><mo>=</mo><mn>6</mn></mrow><annotation encoding="application/x-tex">43 \div 7 = 6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height: 0.7278em; vertical-align: -0.0833em;"></span><span class="mord">43</span><span class="mspace" style="margin-right: 0.2222em;"></span><span class="mbin">÷</span><span class="mspace" style="margin-right: 0.2222em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">7</span><span class="mspace" style="margin-right: 0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right: 0.2778em;"></span></span><span class="base"><span class="strut" style="height: 0.6444em;"></span><span class="mord">6</span></span></span></span></span>.</p>
+
+<p>В Z3 также есть теория битовых векторов, в отличие от неограниченных целых чисел, которая поддерживает сдвиг и многое другое:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>y = z3.BitVec('y', 8)
+print(solve(y &lt;&lt; 3 == 40))
+</code></pre></div></div>
+
+<p>Существуют даже логические кванторы:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>z = z3.Int('z')
+n = z3.Int('n')
+print(solve(z3.ForAll([z], z * n == z)))
+</code></pre></div></div>
+
+<p>Действительно, Z3 потрясающий. Но мы еще не совсем синтезировали программу.</p>
+
+<h2 id="sketching">Sketching</h2>
+
+<p>В духе<a href="https://people.csail.mit.edu/asolar/papers/thesis.pdf">Sketch</a>, мы начнем с синтеза <em>неизвестных</em> , чтобы получить эквивалентную программу для нашей оригинальной программы.
+Вот сценарий:  у вас есть медленная версия программы, которая вас устраивает; это ваша спецификация(input шаблон для нашей второй программы).
+Вы можете <em>примерно</em> представить, как написать более быструю версию, но некоторые сложные моменты сделать вы не можете.
+Задачей механизма синтеза будет заполнить эти неизвестные(те моменты, которые вы не можете сделать) таким образом, чтобы две программы были эквивалентны при любом input.</p>
+
+<p>Возьмем <a href="http://barghouthi.github.io/2017/04/24/synthesis-primer/">небольшой пример Aws</a>: у вас есть “медленное” выражение <code class="language-plaintext highlighter-rouge">x * 2</code>, и вы знаете, что существует “более быстрая” версия, которую можно записать <code class="language-plaintext highlighter-rouge">x &lt;&lt; ??</code> любое значение - <code class="language-plaintext highlighter-rouge">??</code>.
+<a href="https://github.com/sampsyo/minisynth/blob/master/ex1.py">Давайте спросим Z3</a> , что там нужно написать:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>x = z3.BitVec('x', 8)
+slow_expr = x * 2
+h = z3.BitVec('h', 8)  # The hole, a.k.a. ??
+fast_expr = x &lt;&lt; h
+goal = z3.ForAll([x], slow_expr == fast_expr)
+print(solve(goal))
+</code></pre></div></div>
+
+<p>Отлично! Мы получаем модель <code class="language-plaintext highlighter-rouge">[h = 1]</code>, которая сообщает нам, что две программы выдают одинаковый результат для каждого байта <code class="language-plaintext highlighter-rouge">x</code> при сдвиге влево на 1.
+Это (очень простой случай) синтеза: мы сгенерировали (подвыражение) программы, которая соответствует нашей спецификации.</p>
+
+<p>Однако без надлежащего языка программирования это не очень похоже на создание программ. Мы исправим это в следующей главе "A Tiny Language".</p>
+
+<h2 id="a-tiny-language">A Tiny Language</h2>
+
+<p>Давайте <a href="https://github.com/sampsyo/minisynth/blob/master/ex2.py">создадим язык программирования.</a>.
+Нам понадобится парсер; Я выбираю  <a href="https://github.com/lark-parser/lark">Lark</a>. Вот моя грамматика Lark для небольшого языка арифметических выражений, которую я позаимствовал из <a href="https://github.com/lark-parser/lark/blob/master/examples/calc.py">примеров Lark</a> и которую я предлагаю вам, дабы вы не тратили своё время:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="n">GRAMMAR</span> <span class="o">=</span> <span class="s">"""
+?start: sum
+
+?sum: term
+  | sum "+" term        -&gt; add
+  | sum "-" term        -&gt; sub
+
+?term: item
+  | term "*"  item      -&gt; mul
+  | term "/"  item      -&gt; div
+  | term "&gt;&gt;" item      -&gt; shr
+  | term "&lt;&lt;" item      -&gt; shl
+
+?item: NUMBER           -&gt; num
+  | "-" item            -&gt; neg
+  | CNAME               -&gt; var
+  | "(" start ")"
+
+%import common.NUMBER
+%import common.WS
+%import common.CNAME
+%ignore WS
+"""</span><span class="p">.</span><span class="n">strip</span><span class="p">()</span>
+</code></pre></div></div>
+
+<p>Вы можете подавать на вход этому парсеру арифметические операции и операции сдвига над литеральными числами и переменными. И там есть круглые скобки(т.е. маунульная приоретестность определенных выражений, как a+b(f-g))!
+Lark парсеры просты в использовании: </p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>import lark
+parser = lark.Lark(GRAMMAR)
+tree = parser.parse("(5 * (3 &lt;&lt; x)) + y - 1")
+</code></pre></div></div>
+
+<p>Как и для любого хорошего языка, вам понадобится интерпретатор. <a href="https://github.com/sampsyo/minisynth/blob/master/ex2.py">Вот один из них</a> , который обрабатывает дерево от парсера Lark и принимает их в функцию в качестве аргумента для поиска переменных по их именам:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>def interp(tree, lookup):
+    op = tree.data
+    if op in ('add', 'sub', 'mul', 'div', 'shl', 'shr'):
+        lhs = interp(tree.children[0], lookup)
+        rhs = interp(tree.children[1], lookup)
+        if op == 'add':
+            return lhs + rhs
+        elif op == 'sub':
+            return lhs - rhs
+        elif op == 'mul':
+            return lhs * rhs
+        elif op == 'div':
+            return lhs / rhs
+        elif op == 'shl':
+            return lhs &lt;&lt; rhs
+        elif op == 'shr':
+            return lhs &gt;&gt; rhs
+    elif op == 'neg':
+        sub = interp(tree.children[0], lookup)
+        return -sub
+    elif op == 'num':
+        return int(tree.children[0])
+    elif op == 'var':
+        return lookup(tree.children[0])
+</code></pre></div></div>
+
+<p>Как всем уже известно из опыта работы с <a href="http://www.cs.cornell.edu/courses/cs6110/2018sp/">CS 6110</a>, ваш интерпретатор - это просто воплощение big-step семантики вашего языка.
+Как видно, это работает:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>env = {'x': 2, 'y': -17}
+answer = interp(tree, lambda v: env[v])
+</code></pre></div></div>
+
+<p>Мы с вами проделали достаточно серьезную работу в рамках этой статьи, но здесь пока нет никакого волшебства. Давайте добавим волшебства.</p>
+
+<h2 id="from-interpreter-to-constraint-generator">From Interpreter to Constraint Generator</h2>
+
+<p>Ключевой компонент, который нам понадобится, - это <em>перевод</em> наших исходных программ в системы ограничений Z3. Вместо вычисления фактических чисел мы хотим получить эквивалентные формулы. Для этого перегрузка оператора Z3 - самая приятная вещь:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>formula = interp(tree, lambda v: z3.BitVec(v, 8))
+</code></pre></div></div>
+
+
+
+<h2 id="finishing-synthesis">Finishing Synthesis</h2>
+
+<p>С формулами в руках мы почти на месте. Помните, что мы хотим синтезировать значения для наших неизвестных, чтобы сделать две программы эквивалентными, поэтому нам понадобятся два выражения Z3 с общими переменными. Я дополнил Constraint generator, описанный выше - я обернул его в функцию, которая также генерирует задействованные переменные:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>expr1, vars1 = z3_expr(tree1)
+expr2, vars2 = z3_expr(tree2, vars1)
+</code></pre></div></div>
+
+<p>И вот мой способ разрешить неизвестные переменные без изменения грамматики: любое имя переменной, начинающееся с “H”, является неизвестной. Таким образом, мы можем отфильтровать простые переменные от тех под которыми подразумевается неизвестность:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>plain_vars = {k: v for k, v in vars1.items()
+              if not k.startswith('h')}
+</code></pre></div></div>
+
+<p>Все, что нам сейчас нужно, - это количественный показатель равенства: </p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>goal = z3.ForAll(
+    list(plain_vars.values()),  # For every valuation of variables...
+    expr1 == expr2,  # ...the two expressions produce equal results.
+)
+</code></pre></div></div>
+
+<p>Запуская <code class="language-plaintext highlighter-rouge">solve(goal)</code> получаем значение для каждой неизвестной.
+В <a href="https://github.com/sampsyo/minisynth/blob/master/ex2.py">моём полном примере</a>, я добавил некоторые подмостки для загрузки программ из файлов и для красивой печати выражения с неизвестными, в свою очередь после запуска на output наши неизвестные заменяются на значения неизвестных. 
+ Он ожидает две программы, спецификацию(эталон) и шаблон с неизвестными. Спецификация(эталон) и шаблон пишутся на двух строках:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ cat sketches/s2.txt
+x * 10
+x &lt;&lt; h1 + x &lt;&lt; h2
+</code></pre></div></div>
+
+<p>Конечно же это работает: </p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ python3 ex2.py &lt; sketches/s2.txt
+x * 10
+(x &lt;&lt; 3) + (x &lt;&lt; 1)
+</code></pre></div></div>
+
+<h2 id="better-holes-with-conditions">Better Holes with Conditions</h2>
+
+<p>Наш пример пока может синтезировать только константы, что приятно, но неудовлетворительно. Что, если мы захотим синтезировать shifty эквивалент для<code class="language-plaintext highlighter-rouge">x * 9</code>, например? Мы могли бы подумать о подобном шаблоне: <code class="language-plaintext highlighter-rouge">x &lt;&lt; ?? + ??</code>, но нет пары чисел под переменные, которые мы могли бы вставить в эти неизвестные, чтобы сделать их эквивалентными. Как мы можем синтезировать более широкое разнообразие выражений, как <code class="language-plaintext highlighter-rouge">x</code>?</p>
+
+<p>Мы можем заставить это работать, не меняя фундаментально нашу стратегию синтеза. Однако нам нужно будет добавить условия в наш язык. Нам нужно будет расширить парсер с помощью тернарного оператора:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>?start: sum
+  | sum "?" sum ":" sum -&gt; if
+</code></pre></div></div>
+
+<p>И я добавлю очень сомнительный случай для нашего интерпретатора:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>elif op == 'if':
+    cond = interp(tree.children[0], lookup)
+    true = interp(tree.children[1], lookup)
+    false = interp(tree.children[2], lookup)
+    return (cond != 0) * true + (cond == 0) * false
+</code></pre></div></div>
+
+<p>Эти обалденные умножения - просто ужасная альтернатива встроенному в Python условному выражению. Я использую это здесь вместо простого <code class="language-plaintext highlighter-rouge">true if cond else false</code> , потому что это работает как в режиме интерпретатора, так  <em>и в режиме генерации ограничений Z3</em> и ведет себя одинаково.
+Я приношу извинения за неразборчивый код, но не за удобство одной реализации.</p>
+
+<p>Хитрость заключается в использовании условных неизвестных для переключения между формами выражения. Вот реализация шаблона, который мы хотим получить выше:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>$ cat sketches/s4.txt
+x * 9
+x &lt;&lt; (hb1 ? x : hn1) + (hb2 ? x : hn2)
+</code></pre></div></div>
+
+<p>Каждый тернатрный оператор здесь представляет собой <code class="language-plaintext highlighter-rouge">??</code> неизвестность в шаблоне, который мы хотели написать,<code class="language-plaintext highlighter-rouge">x &lt;&lt; ?? + ??</code>. Выбирая значения <code class="language-plaintext highlighter-rouge">hb1</code> и <code class="language-plaintext highlighter-rouge">hb2</code>, синтезатор может выбрать, использовать ли в этом месте литерал или переменную.
+В надлежащей системе синтеза мы бы скрыли эти условия из синтаксиса surface — генератор ограничений вставил бы условие для каждого <code class="language-plaintext highlighter-rouge">??</code>. Путем условного переключения между более широким спектром синтаксических форм — даже с использованием вложенных условий для вложенных выражений — инструмент может синтезировать сложные программные фрагменты для каждой неизвестной.</p>
+
+<h2 id="keep-synthesizing">Keep Synthesizing</h2>
+
+<p>Может, это и игрушечный язык, но мы создали синтезатор! Программный синтез - это мощная идея, которая может пригодиться в самых разных областях информатики. Чтобы узнать больше о том, что будет дальше, я рекомендую обзор <a href="https://homes.cs.washington.edu/~bornholt/">James Bornholt</a>’s <a href="https://homes.cs.washington.edu/~bornholt/post/synthesis-explained.html">overview</a>. И вы должны ознакомиться с <a href="https://emina.github.io/rosette/">Rosette</a> - инструментом, который дает вам основу для написания инструментов на основе синтеза без непосредственного взаимодействия с SMT-решателем, как мы это сделали здесь.</p>
+
+
+</article>
+
+<footer>
+Have comments or questions?
+Please
+<a href="mailto:asampson@cs.cornell.edu?subject=Re: Program Synthesis is Possible">drop me an email</a>
+or toot to
+<a href="https://discuss.systems/@adrian">@adrian@discuss.systems</a>.
+If you find a typo, please consider <a href="https://github.com/sampsyo/home/edit/master/_posts/2018-05-09-minisynth.md">sending a pull request</a>.
+</footer>
+
+
+        </div>
+
+        
+        <!-- KaTeX -->
+        <script src="Adrian%20Sampson%20Program%20Synthesis%20is%20Possible_files/katex.min.js"></script>
+        <script src="Adrian%20Sampson%20Program%20Synthesis%20is%20Possible_files/auto-render.min.js"></script>
+        <script>
+            // KaTeX auto-render.
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "\\[", right: "\\]", display: true},
+                    {left: "$", right: "$", display: false}
+                ]
+            });
+        </script>
+        
+    
+
+</body></html>
